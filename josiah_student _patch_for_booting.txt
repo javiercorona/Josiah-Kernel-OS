@@ -1,0 +1,120 @@
+--- josiah_student.py	(original)
++++ josiah_student.py	(fixed_boot)
+@@ -180,6 +180,23 @@
+-# ======================
+-# Main System (Original + Student Features)
+-# ======================
+-if __name__ == "__main__":
+-    try:
+-        # Initialize hardware detection
+-        config = KernelConfig()
+-        print("=== Josiah Kernel OS - Student Edition ===")
+-        print(f"Boot Mode: {config.hardware.details['boot_mode'].upper()}")
+-        print(f"CPU: {config.hardware.details['cpu']['model']}")
+-        print(f"RAM: {config.hardware.details['ram']:.1f}GB")
+-        
+-        # Check for school devices
+-        if any(config.hardware.details['school_devices'].values()):
+-            print("\nDetected School Hardware:")
+-            for device, list in config.hardware.details['school_devices'].items():
+-                if list: print(f"- {device}: {len(list)} found")
+-
+-        # Setup bootloader
+-        boot = BootManager()
+-        boot.setup()
+-
+-        # Start init system
+-        init = InitSystem()
+-        init.start_essential()
+-
+-        # Install student packages if in student mode
+-        if os.getenv("STUDENT_MODE", "1") == "1":
+-            StudentPackages().install_defaults()
+-            config.student_config.apply_settings()
+-            
+-            # Start study tools if not in admin mode
+-            if not os.path.exists("/etc/admin-mode"):
+-                StudyTools().start_study_session()
+-
+-        # Secure root mount
+-        if not os.path.ismount("/mnt"):
+-            subprocess.run(["mount", "-o", "discard,noatime", config.rootfs, "/mnt"], check=True)
+-            os.chroot("/mnt")
+-
+-        print("\n=== System Ready ===")
+-        print("Preinstalled educational software:")
+-        for category, apps in StudentPackages().educational_tools.items():
+-            print(f"- {category.capitalize()}: {', '.join(apps[:3])}...")
+-            
+-        print("\nStudy Tools Active:")
+-        print(f"- Focus timer: {config.student_config.study_timer}min study, {config.student_config.break_timer}min break")
+-        print("- Safe search enabled")
+-        
+-        while True:
+-            time.sleep(10)
+-
+-    except Exception as e:
+-        print(f"BOOT FAILED: {str(e)}")
+-        print("Entering recovery shell...")
+-        subprocess.run(["/bin/busybox", "sh"])  # Fallback shell
+-        sys.exit(1)
++# ======================
++# Add missing classes for student edition boot completeness
++# ======================
++class InitSystem:
++    def start_essential(self):
++        """Start essential system services for minimal boot."""
++        print("Starting essential services...")
++        services = ["networking", "dbus"]
++        for svc in services:
++            try:
++                subprocess.run(["systemctl", "start", svc], check=False)
++            except Exception as e:
++                print(f"⚠ Failed to start {svc}: {e}")
++
++
++# ======================
++# UPDATED: Main System (Student Edition boot fix)
++# ======================
++if __name__ == "__main__":
++    try:
++        # Initialize hardware detection
++        config = KernelConfig()
++        print("=== Josiah Kernel OS - Student Edition ===")
++        print(f"Boot Mode: {config.hardware.details['boot_mode'].upper()}")
++        print(f"CPU: {config.hardware.details['cpu']['model']}")
++        print(f"RAM: {config.hardware.details['ram']:.1f}GB")
++
++        # Check for school devices
++        if any(config.hardware.details['school_devices'].values()):
++            print("\nDetected School Hardware:")
++            for device, lst in config.hardware.details['school_devices'].items():
++                if lst:
++                    print(f"- {device}: {len(lst)} found")
++
++        # Setup bootloader
++        boot = BootManager()
++        boot.setup()
++
++        # Start init system
++        init = InitSystem()
++        init.start_essential()
++
++        # Install student packages if in student mode
++        if os.getenv("STUDENT_MODE", "1") == "1":
++            StudentPackages().install_defaults()
++            config.student_config.apply_settings()
++
++            # Start study tools if not in admin mode
++            if not os.path.exists("/etc/admin-mode"):
++                StudyTools().start_study_session()
++
++        # Secure root mount
++        if not os.path.ismount("/mnt"):
++            subprocess.run(["mount", "-o", "discard,noatime", config.rootfs, "/mnt"], check=True)
++            os.chroot("/mnt")
++
++        print("\n=== System Ready ===")
++        print("Preinstalled educational software:")
++        for category, apps in StudentPackages().educational_tools.items():
++            print(f"- {category.capitalize()}
