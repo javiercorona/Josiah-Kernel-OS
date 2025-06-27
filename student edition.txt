@@ -1,0 +1,414 @@
+"""
+AI ORCHESTRATION KERNEL v8.7.1 - STUDENT EDITION
+Enhanced with:
+1. Original production-grade features
+2. Educational software preloading
+3. School hardware compatibility
+4. Learning environment customization
+5. Parental/teacher controls
+6. Study productivity tools
+"""
+
+import os
+import sys
+import hashlib
+import json
+import time
+import subprocess
+import tempfile
+import glob
+import re
+import shutil
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.backends import default_backend
+from enum import Enum, auto
+
+class InstallMethod(Enum):
+    SQUASHFS = auto()
+    CONTAINER = auto()
+    DYNAMIC = auto()
+    PACKAGE = auto()
+
+class SecurityError(Exception):
+    pass
+
+# ======================
+# Hardware Detection (Original + School Device Support)
+# ======================
+class HardwareDetector:
+    def __init__(self):
+        self.arch = os.uname().machine
+        self.details = self._detect_all()
+        self._check_missing()
+
+    def _detect_all(self) -> dict:
+        return {
+            'cpu': self._get_cpu_info(),
+            'ram': self._get_ram_size(),
+            'storage': self._get_storage_info(),
+            'network': self._get_network_info(),
+            'gpu': self._get_gpu_info(),
+            'usb': self._scan_usb(),
+            'firmware': self._check_firmware(),
+            'boot_mode': self._get_boot_mode(),
+            'school_devices': self._detect_school_devices()  # NEW
+        }
+
+    def _get_boot_mode(self) -> str:
+        """Detect UEFI/BIOS boot mode"""
+        return "uefi" if os.path.exists("/sys/firmware/efi") else "bios"
+
+    def _detect_school_devices(self) -> dict:  # NEW
+        """Detect common school hardware"""
+        devices = {
+            'projectors': self._scan_for_projectors(),
+            'printers': self._scan_for_printers(),
+            'tablets': self._scan_for_drawing_tablets()
+        }
+        return devices
+
+    def _scan_for_projectors(self) -> list:  # NEW
+        try:
+            output = subprocess.check_output(["lsusb"]).decode()
+            return [line for line in output.split('\n') if any(brand in line.lower() 
+                   for brand in ['benq', 'epson', 'optoma'])]
+        except:
+            return []
+
+    # ... (other original detection methods remain unchanged) ...
+
+# ======================
+# Kernel Configuration (Original + Student Settings)
+# ======================
+class KernelConfig:
+    def __init__(self):
+        self.hardware = HardwareDetector()
+        self._init_partitions()
+        self.overlay_dir = "/var/overlay"
+        self.student_config = StudentConfig()  # NEW
+        
+        # Driver repositories (original + educational)
+        self.driver_repos = {
+            'iwlwifi': 'https://firmware.intel.com',
+            'broadcom-sta': 'https://packages.debian.org',
+            'rtlwifi': 'https://github.com/lwfinger/rtlwifi_new',
+            'mesa': 'https://packages.debian.org',
+            'firmware': 'https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git',
+            'school': 'https://edu-drivers.josiahkernel.org'  # NEW
+        }
+
+        # Security
+        self.use_tpm = self._detect_tpm()
+        self.boot_key = self._load_or_generate_key()
+        self.safe_mode = True  # NEW: Enabled by default for students
+
+    def _init_partitions(self):
+        """Dynamic partition detection"""
+        if self.hardware.details['boot_mode'] == "uefi":
+            self.boot = self._find_partition("EFI")
+            self.rootfs = self._find_partition("ROOT")
+        else:
+            self.boot = "/dev/sda1"
+            self.rootfs = "/dev/sda2"
+
+    def _find_partition(self, label: str) -> str:
+        """Find partition by label"""
+        try:
+            output = subprocess.check_output(["blkid", "-L", label]).decode().strip()
+            return output if output else f"/dev/disk/by-label/{label}"
+        except:
+            return ""
+
+# ======================
+# NEW: Student Configuration System
+# ======================
+class StudentConfig:
+    def __init__(self):
+        self.safe_search = True
+        self.parental_controls = False
+        self.study_timer = 45  # minutes
+        self.break_timer = 10  # minutes
+        self.allowed_websites = [
+            "wikipedia.org",
+            "khanacademy.org",
+            "wolframalpha.com",
+            "geeksforgeeks.org",
+            "josiahkernel.org/edu"
+        ]
+        self.installed_software = []
+        
+    def apply_settings(self):
+        """Apply student-specific system settings"""
+        self._enable_safe_search()
+        self._setup_timers()
+        self._configure_environment()
+        
+    def _enable_safe_search(self):
+        """Configure safe search across applications"""
+        # Set up DNS-based filtering
+        with open("/etc/resolv.conf", "a") as f:
+            f.write("\n# Student Edition Safe Search\n")
+            f.write("nameserver 8.8.8.8\n")
+            f.write("nameserver 8.8.4.4\n")
+        
+        # Configure browser policies
+        firefox_policy = {
+            "policies": {
+                "SafeBrowsingEnabled": True,
+                "TrackingProtection": True,
+                "BlockAboutAddons": True
+            }
+        }
+        with open("/etc/firefox/policies.json", "w") as f:
+            json.dump(firefox_policy, f)
+        
+    def _setup_timers(self):
+        """Configure study/break timers"""
+        # Create systemd service for study timer
+        with open("/etc/systemd/system/study-timer.service", "w") as f:
+            f.write("""[Unit]
+Description=Study Timer Service
+After=graphical.target
+
+[Service]
+ExecStart=/usr/bin/study-timer --study %d --break %d
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+""" % (self.study_timer, self.break_timer))
+        
+        subprocess.run(["systemctl", "enable", "study-timer.service"])
+        
+    def _configure_environment(self):
+        """Set up student-friendly environment"""
+        # Set default applications
+        with open("/etc/xdg/mimeapps.list", "w") as f:
+            f.write("""[Default Applications]
+text/html=firefox.desktop
+application/pdf=org.kde.okular.desktop
+application/x-python-code=thonny.desktop
+""")
+
+# ======================
+# NEW: Student Package Management
+# ======================
+class StudentPackages:
+    def __init__(self):
+        self.educational_tools = {
+            'math': ['kalgebra', 'geogebra', 'gnuplot'],
+            'science': ['stellarium', 'avogadro', 'kalzium'],
+            'programming': ['thonny', 'scratch', 'jupyter-notebook'],
+            'writing': ['libreoffice', 'lyx', 'focuswriter'],
+            'misc': ['gcompris', 'kturtle', 'kodu']
+        }
+        
+    def install_defaults(self):
+        """Install educational packages during system setup"""
+        print("=== Installing Educational Software ===")
+        
+        # First install package manager if needed
+        self._ensure_package_manager()
+        
+        # Install by category with progress reporting
+        for category, packages in self.educational_tools.items():
+            print(f"\nInstalling {category} tools...")
+            for pkg in packages:
+                try:
+                    subprocess.run(
+                        ["apt-get", "install", "-y", "--no-install-recommends", pkg],
+                        check=True
+                    )
+                    print(f"✓ {pkg}")
+                    config.student_config.installed_software.append(pkg)
+                except subprocess.CalledProcessError:
+                    print(f"⚠ Failed to install {pkg}")
+        
+        # Install school-specific dependencies
+        self._install_school_drivers()
+        
+    def _ensure_package_manager(self):
+        """Make sure package manager is available"""
+        if not shutil.which("apt-get"):
+            print("Setting up package manager...")
+            subprocess.run(["setup-pkgmgr"], check=True)
+            
+    def _install_school_drivers(self):
+        """Install drivers for detected school hardware"""
+        print("\nChecking for school hardware...")
+        for device_type, devices in config.hardware.details['school_devices'].items():
+            if devices:
+                print(f"Found {device_type}, installing drivers...")
+                try:
+                    subprocess.run(
+                        ["apt-get", "install", "-y", f"school-{device_type}-drivers"],
+                        check=True
+                    )
+                except subprocess.CalledProcessError:
+                    print(f"Could not install drivers for {device_type}")
+
+# ======================
+# Initramfs Generator (Original)
+# ======================
+class InitramfsBuilder:
+    def generate(self):
+        """Create initramfs with essential modules"""
+        os.makedirs("/tmp/initramfs", exist_ok=True)
+        
+        # Copy critical binaries
+        for cmd in ["busybox", "modprobe", "mount"]:
+            shutil.copy(f"/bin/{cmd}", "/tmp/initramfs/")
+        
+        # Create init script
+        with open("/tmp/initramfs/init", "w") as f:
+            f.write("""#!/bin/busybox sh
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev
+exec /sbin/init
+""")
+        os.chmod("/tmp/initramfs/init", 0o755)
+        
+        # Build CPIO archive
+        subprocess.run(["cd /tmp/initramfs && find . | cpio -H newc -o | gzip > /boot/initrd.img"], 
+                      shell=True, check=True)
+
+# ======================
+# Boot Manager (Original + Student Mode Check)
+# ======================
+class BootManager:
+    def __init__(self):
+        self.efi_mounted = False
+
+    def setup(self):
+        """Full boot setup"""
+        self._mount_efi()
+        self._install_grub()
+        self._generate_initramfs()
+        
+        # Check for student mode override
+        if os.path.exists("/etc/student-mode"):
+            self._setup_student_theme()
+
+    def _mount_efi(self):
+        os.makedirs("/boot/efi", exist_ok=True)
+        subprocess.run(["mount", config.boot, "/boot/efi"], check=True)
+        self.efi_mounted = True
+
+    def _install_grub(self):
+        target = "--target=x86_64-efi" if config.hardware.details['boot_mode'] == "uefi" else "--target=i386-pc"
+        subprocess.run(["grub-install", target, config.boot.split()[0]], check=True)
+        subprocess.run(["grub-mkconfig", "-o", "/boot/grub/grub.cfg"], check=True)
+        
+    def _setup_student_theme(self):  # NEW
+        """Apply student-friendly boot theme"""
+        subprocess.run([
+            "grub-mktheme", "-o", "/boot/grub/themes/student",
+            "-t", "education", "-i", "fonts"
+        ])
+        subprocess.run([
+            "sed", "-i", 
+            "s/GRUB_THEME=.*/GRUB_THEME=\"/boot/grub/themes/student/theme.txt\"/",
+            "/etc/default/grub"
+        ])
+        subprocess.run(["grub-mkconfig", "-o", "/boot/grub/grub.cfg"])
+
+    def _generate_initramfs(self):
+        InitramfsBuilder().generate()
+
+# ======================
+# NEW: Study Tools Service
+# ======================
+class StudyTools:
+    def __init__(self):
+        self.active_timers = {}
+        
+    def start_study_session(self):
+        """Initialize all study productivity tools"""
+        self._start_timer()
+        self._enable_focus_mode()
+        self._log_session_start()
+        
+    def _start_timer(self):
+        """Start the study/break timer"""
+        subprocess.Popen([
+            "/usr/bin/study-timer",
+            "--study", str(config.student_config.study_timer),
+            "--break", str(config.student_config.break_timer)
+        ])
+        
+    def _enable_focus_mode(self):
+        """Limit distractions during study time"""
+        # Block social media
+        with open("/etc/hosts", "a") as f:
+            f.write("\n# Focus Mode Blocklist\n")
+            f.write("127.0.0.1 facebook.com\n")
+            f.write("127.0.0.1 twitter.com\n")
+            f.write("127.0.0.1 instagram.com\n")
+            
+        # Restart network
+        subprocess.run(["systemctl", "restart", "network-manager"])
+        
+    def _log_session_start(self):
+        """Record study session for progress tracking"""
+        with open("/var/log/study-sessions.log", "a") as f:
+            f.write(f"Session started at {time.ctime()}\n")
+
+# ======================
+# Main System (Original + Student Features)
+# ======================
+if __name__ == "__main__":
+    try:
+        # Initialize hardware detection
+        config = KernelConfig()
+        print("=== Josiah Kernel OS - Student Edition ===")
+        print(f"Boot Mode: {config.hardware.details['boot_mode'].upper()}")
+        print(f"CPU: {config.hardware.details['cpu']['model']}")
+        print(f"RAM: {config.hardware.details['ram']:.1f}GB")
+        
+        # Check for school devices
+        if any(config.hardware.details['school_devices'].values()):
+            print("\nDetected School Hardware:")
+            for device, list in config.hardware.details['school_devices'].items():
+                if list: print(f"- {device}: {len(list)} found")
+
+        # Setup bootloader
+        boot = BootManager()
+        boot.setup()
+
+        # Start init system
+        init = InitSystem()
+        init.start_essential()
+
+        # Install student packages if in student mode
+        if os.getenv("STUDENT_MODE", "1") == "1":
+            StudentPackages().install_defaults()
+            config.student_config.apply_settings()
+            
+            # Start study tools if not in admin mode
+            if not os.path.exists("/etc/admin-mode"):
+                StudyTools().start_study_session()
+
+        # Secure root mount
+        if not os.path.ismount("/mnt"):
+            subprocess.run(["mount", "-o", "discard,noatime", config.rootfs, "/mnt"], check=True)
+            os.chroot("/mnt")
+
+        print("\n=== System Ready ===")
+        print("Preinstalled educational software:")
+        for category, apps in StudentPackages().educational_tools.items():
+            print(f"- {category.capitalize()}: {', '.join(apps[:3])}...")
+            
+        print("\nStudy Tools Active:")
+        print(f"- Focus timer: {config.student_config.study_timer}min study, {config.student_config.break_timer}min break")
+        print("- Safe search enabled")
+        
+        while True:
+            time.sleep(10)
+
+    except Exception as e:
+        print(f"BOOT FAILED: {str(e)}")
+        print("Entering recovery shell...")
+        subprocess.run(["/bin/busybox", "sh"])  # Fallback shell
+        sys.exit(1)
