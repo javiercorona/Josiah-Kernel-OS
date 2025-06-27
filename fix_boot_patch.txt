@@ -1,0 +1,98 @@
+--- orchestrator.py	(original)
++++ orchestrator.py	(fixed_boot)
+@@ -90,6 +90,22 @@
+-# ======================
+-# UPDATED: Main System (Fixed boot sequence)
+-# ======================
+-if __name__ == "__main__":
+-    try:
+-        # Initialize hardware detection
+-        config = KernelConfig()
+-        print("=== Hardware Detection ===")
+-        print(f"Boot Mode: {config.hardware.details['boot_mode'].upper()}")
+-        print(f"CPU: {config.hardware.details['cpu']['model']}")
+-        print(f"RAM: {config.hardware.details['ram']:.1f}GB")
+-
+-        # Setup bootloader FIRST
+-        boot = BootManager()
+-        boot.setup()  # NEW: Combined setup
+-
+-        # Start init system
+-        init = InitSystem()
+-        init.start_essential()
+-
+-        # Install drivers
+-        DriverManager().install_drivers()
+-
+-        # Secure root mount
+-        if not os.path.ismount("/mnt"):
+-            subprocess.run(["mount", "-o", "discard,noatime", config.rootfs, "/mnt"], check=True)
+-            os.chroot("/mnt")
+-
+-        print("=== System Ready ===")
+-        while True:
+-            time.sleep(10)
+-
+-    except Exception as e:
+-        print(f"BOOT FAILED: {str(e)}")
+-        print("Entering recovery shell...")
+-        subprocess.run(["/bin/busybox", "sh"])  # Fallback shell
+-        sys.exit(1)
++# ======================
++# Add missing classes for boot completeness
++# ======================
++class InitSystem:
++    def start_essential(self):
++        """Start essential system services for minimal boot."""
++        print("Starting essential services...")
++        services = ["networking", "dbus"]
++        for svc in services:
++            try:
++                subprocess.run(["systemctl", "start", svc], check=False)
++            except Exception as e:
++                print(f"⚠ Failed to start {svc}: {e}")
++
++class DriverManager:
++    def install_drivers(self):
++        """Stub: install essential drivers."""
++        print("Installing drivers...")
++        # Expand driver installation here if needed
++
++
++# ======================
++# UPDATED: Main System (Fixed boot sequence)
++# ======================
++if __name__ == "__main__":
++    try:
++        # Initialize hardware detection
++        config = KernelConfig()
++        print("=== Hardware Detection ===")
++        print(f"Boot Mode: {config.hardware.details['boot_mode'].upper()}")
++        print(f"CPU: {config.hardware.details['cpu']['model']}")
++        print(f"RAM: {config.hardware.details['ram']:.1f}GB")
++
++        # Setup bootloader FIRST
++        boot = BootManager()
++        boot.setup()  # NEW: Combined setup
++
++        # Start init system
++        init = InitSystem()
++        init.start_essential()
++
++        # Install drivers
++        DriverManager().install_drivers()
++
++        # Secure root mount
++        if not os.path.ismount("/mnt"):
++            subprocess.run(["mount", "-o", "discard,noatime", config.rootfs, "/mnt"], check=True)
++            os.chroot("/mnt")
++
++        print("=== System Ready ===")
++        while True:
++            time.sleep(10)
++
++    except Exception as e:
++        print(f"BOOT FAILED: {str(e)}")
++        print("Entering recovery shell...")
++        subprocess.run(["/bin/busybox", "sh"])  # Fallback shell
++        sys.exit(1)
